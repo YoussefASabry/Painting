@@ -27,7 +27,7 @@ export default function ContactCard({ icon, label, value, type }) {
       <a href={url} target="_blank" rel="noopener noreferrer" className="contact-item" style={{ textDecoration: 'none', cursor: 'pointer' }}>
         <span className="contact-icon">{icon}</span>
         <div className="contact-label">{label}</div>
-        <div className="contact-value">{value}</div>
+        <div className="contact-value">Click to Visit</div>
       </a>
     )
   }

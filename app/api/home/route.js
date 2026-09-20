@@ -28,6 +28,8 @@ function formatArtwork(row) {
     size: [row.width_cm, row.height_cm].filter(Boolean).join(' × ') + (row.width_cm ? ' cm' : ''),
     description: row.description, price: row.price, status: row.status || 'available',
     sold: row.status === 'sold', featured: row.is_featured, published: row.is_published,
+    is_on_sale: row.is_on_sale || false,
+    on_sale_sort_order: row.on_sale_sort_order ?? 0,
     image: primary ? primary.url : null, images: (row.artwork_images || []).map((img) => img.url), sort_order: row.sort_order,
   }
 }

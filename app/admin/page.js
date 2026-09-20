@@ -4,8 +4,9 @@ import { useState, useEffect, useRef, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import { getBrowserSupabase } from '@/lib/supabase'
 import { getAdminClient } from '@/lib/admin-client'
+import { ON_SALE_COLLECTION_ID } from '@/lib/db'
 
-const TABS = ['Artworks', 'Collections', 'Profile', 'Credentials', 'Exhibitions']
+const TABS = ['Artworks', 'Collections', 'Profile', 'Exhibitions', 'Events']
 
 export default function AdminPage() {
   const [tab, setTab] = useState('Artworks')
@@ -42,8 +43,8 @@ export default function AdminPage() {
         {tab === 'Artworks' && <ArtworksManager setError={setError} setSuccess={setSuccess} />}
         {tab === 'Collections' && <CollectionsManager setError={setError} setSuccess={setSuccess} />}
         {tab === 'Profile' && <ProfileManager setError={setError} setSuccess={setSuccess} />}
-        {tab === 'Credentials' && <CredentialsManager setError={setError} setSuccess={setSuccess} />}
         {tab === 'Exhibitions' && <ExhibitionsManager setError={setError} setSuccess={setSuccess} />}
+        {tab === 'Events' && <EventsManager setError={setError} setSuccess={setSuccess} />}
       </div>
     </main>
   )
@@ -54,10 +55,13 @@ function ArtworksManager({ setError, setSuccess }) {
   const [grouped, setGrouped] = useState([])
   const [uncollected, setUncollected] = useState([])
   const [collections, setCollections] = useState([])
+  const [onSaleArts, setOnSaleArts] = useState([])
   const [edit, setEdit] = useState(null)
   const [busy, setBusy] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const [tick, setTick] = useState(0)
   const dragSrc = useRef(null)
+  const allArtsRef = useRef([])
 
   const load = async () => {
     try {
@@ -78,6 +82,9 @@ function ArtworksManager({ setError, setSuccess }) {
       }))
       const unc = allArts.filter((a) => !a.collection_id).sort((a, b) => a.sort_order - b.sort_order)
 
+      const onSaleArts = allArts.filter((a) => a.is_on_sale).sort((a, b) => (a.on_sale_sort_order ?? 0) - (b.on_sale_sort_order ?? 0))
+      allArtsRef.current = allArts
+      setOnSaleArts(onSaleArts)
       setGrouped(grp)
       setUncollected(unc)
       setCollections(sortedColls)
@@ -122,6 +129,13 @@ function ArtworksManager({ setError, setSuccess }) {
         next.splice(targetIndex, 0, moved)
         return next
       })
+    } else if (src.groupId === 'on-sale') {
+      setOnSaleArts(prev => {
+        const next = [...prev]
+        const [moved] = next.splice(src.index, 1)
+        next.splice(targetIndex, 0, moved)
+        return next
+      })
     } else {
       setGrouped(prev => prev.map(g => {
         if (g.collection.id !== src.groupId) return g
@@ -138,6 +152,8 @@ function ArtworksManager({ setError, setSuccess }) {
   const arrowUp = (groupId, index, isUncollected) => {
     if (isUncollected) {
       setUncollected(prev => moveUp(prev, index))
+    } else if (groupId === 'on-sale') {
+      setOnSaleArts(prev => moveUp(prev, index))
     } else {
       setGrouped(prev => prev.map(g => {
         if (g.collection.id !== groupId) return g
@@ -149,6 +165,8 @@ function ArtworksManager({ setError, setSuccess }) {
   const arrowDown = (groupId, index, isUncollected) => {
     if (isUncollected) {
       setUncollected(prev => moveDown(prev, index))
+    } else if (groupId === 'on-sale') {
+      setOnSaleArts(prev => moveDown(prev, index))
     } else {
       setGrouped(prev => prev.map(g => {
         if (g.collection.id !== groupId) return g
@@ -168,6 +186,7 @@ function ArtworksManager({ setError, setSuccess }) {
         g.artworks.forEach((a, i) => updates.push(supabase.from('artworks').update({ sort_order: i }).eq('id', a.id)))
       }
       uncollected.forEach((a, i) => updates.push(supabase.from('artworks').update({ sort_order: i }).eq('id', a.id)))
+      onSaleArts.forEach((a, i) => updates.push(supabase.from('artworks').update({ on_sale_sort_order: i }).eq('id', a.id)))
       await Promise.all(updates)
       setSuccess('Order saved!')
       setDirty(false)
@@ -182,11 +201,10 @@ function ArtworksManager({ setError, setSuccess }) {
       const artworkId = form.id || (crypto.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16) }))
       const payload = {
         id: artworkId, title: form.title, year: form.year, medium: form.medium,
-        width_cm: form.width_cm || null, height_cm: form.height_cm || null, depth_cm: form.depth_cm || null,
+        width_cm: form.width_cm || null, height_cm: form.height_cm || null, depth_cm: form.depth_cm || null, weight_kg: form.weight_kg || null,
         description: form.description, price: form.price || 0,
         status: form.status || 'available',
-        stock: form.stock !== '' && form.stock !== undefined ? form.stock : null,
-        is_featured: form.is_featured || false,
+        is_featured: form.is_featured || false, is_on_sale: form.is_on_sale || false,
         is_published: form.is_published !== undefined ? form.is_published : true,
         sort_order: form.sort_order || 0, collection_id: form.collection_id || null,
       }
@@ -235,6 +253,39 @@ function ArtworksManager({ setError, setSuccess }) {
     URL.revokeObjectURL(url)
   }
 
+  const toggleField = (id, field) => {
+    const item = allArtsRef.current.find(a => a.id === id)
+    if (!item) return
+    const newVal = !item[field]
+    item[field] = newVal
+    setTick((c) => c + 1)
+    setBusy(true)
+    const supabasePromise = getAdminClient()
+    supabasePromise.then((supabase) => {
+      const ops = [supabase.from('artworks').update({ [field]: newVal }).eq('id', id)]
+      if (field === 'is_featured' && newVal) {
+        allArtsRef.current.forEach((a) => {
+          if (a.id !== id && a.is_featured) {
+            a.is_featured = false
+            ops.push(supabase.from('artworks').update({ is_featured: false }).eq('id', a.id))
+          }
+        })
+      }
+      return Promise.all(ops)
+    }).then((results) => {
+      const err = results.find((r) => r.error)
+      if (err) throw err
+      setTick((c) => c + 1)
+    }).catch((e) => {
+      allArtsRef.current.forEach((a) => {
+        if (a.id === id) a.is_featured = !newVal
+        else if (field === 'is_featured' && newVal && a.is_featured === false) a.is_featured = true
+      })
+      setTick((c) => c + 1)
+      setError(e.message)
+    }).finally(() => setBusy(false))
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -251,23 +302,63 @@ function ArtworksManager({ setError, setSuccess }) {
       {edit && <ArtworkForm item={edit} collections={collections}
         onSave={handleSave} onCancel={() => setEdit(null)} busy={busy} />}
 
-      <div className="admin-table-wrap">
+      <div className="admin-table-wrap artworks-table">
         <table>
           <thead>
             <tr>
-              <th style={{ width: 70 }}>#</th><th>Title</th><th>Collection</th><th>Year</th><th>Status</th><th>Price</th><th>Featured</th><th>Published</th><th>Actions</th>
+              <th style={{ width: 70 }}>#</th><th>Image</th><th>Title</th><th>Collection</th><th>Year</th><th>Status</th><th>Price</th><th>Featured</th><th>On Sale</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
+            {onSaleArts.length > 0 && (
+              <Fragment>
+                <tr className="admin-group-header">
+                  <td colSpan={10} style={{ padding: '8px 12px', fontWeight: 700, fontSize: 13, color: '#dc2626', background: '#fef2f2' }}>
+                    On Sale
+                  </td>
+                </tr>
+                {onSaleArts.map((a, ai) => (
+                  <tr key={a.id} draggable={!busy}
+                    onDragStart={(e) => handleDragStart(e, 'on-sale', ai, false)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, 'on-sale', ai, false)}
+                    style={{ cursor: 'grab' }}
+                  >
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <span style={{ cursor: 'grab', fontSize: 14, color: 'var(--slate-gray)', marginRight: 4 }}>&#x22EE;</span>
+                      <button disabled={busy} onClick={() => arrowUp('on-sale', ai, false)} style={arrowMini}>&#9650;</button>
+                      <button disabled={busy} onClick={() => arrowDown('on-sale', ai, false)} style={arrowMini}>&#9660;</button>
+                    </td>
+                    <td>{a.artwork_images?.[0]?.url ? <img src={a.artwork_images[0].url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} /> : '—'}</td>
+                    <td>{a.title}</td>
+                    <td style={{ fontSize: 12, color: 'var(--slate-gray)' }}>{a.collection_id ? 'Mixed' : '—'}</td>
+                    <td>{a.year}</td>
+                    <td>{a.status}</td>
+                    <td>EGP {a.price?.toLocaleString()}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <label style={{ marginRight: 10 }}><input type="checkbox" checked={!!a.is_featured} disabled={busy} onChange={() => toggleField(a.id, 'is_featured')} /><span className="ml">Featured</span></label>
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <label style={{ marginRight: 10 }}><input type="checkbox" checked={!!a.is_on_sale} disabled={busy} onChange={() => toggleField(a.id, 'is_on_sale')} /><span className="ml">On Sale</span></label>
+                    </td>
+                    
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button className="btn btn-secondary" style={{ fontSize: 12, padding: '4px 12px', marginRight: 6 }} onClick={() => setEdit(a)}>Edit</button>
+                      <button className="btn btn-secondary" style={{ fontSize: 12, padding: '4px 12px', background: 'var(--caput-mortuum)', color: '#fff' }} onClick={() => handleDelete(a.id)} disabled={busy}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </Fragment>
+            )}
             {grouped.map((g) => (
               <Fragment key={g.collection.id}>
                 <tr className="admin-group-header">
-                  <td colSpan={9} style={{ padding: '8px 12px', fontWeight: 700, fontSize: 13, color: 'var(--coffee)', background: '#f5f0e8' }}>
+                  <td colSpan={10} style={{ padding: '8px 12px', fontWeight: 700, fontSize: 13, color: 'var(--coffee)', background: '#f5f0e8' }}>
                     {g.collection.title}
                   </td>
                 </tr>
                 {g.artworks.length === 0 && (
-                  <tr><td colSpan={9} style={{ padding: 6, fontSize: 12, color: 'var(--slate-gray)', fontStyle: 'italic' }}>No artworks in this collection</td></tr>
+                  <tr><td colSpan={10} style={{ padding: 6, fontSize: 12, color: 'var(--slate-gray)', fontStyle: 'italic' }}>No artworks in this collection</td></tr>
                 )}
                 {g.artworks.map((a, ai) => (
                   <tr key={a.id} draggable={!busy}
@@ -281,13 +372,19 @@ function ArtworksManager({ setError, setSuccess }) {
                       <button disabled={busy} onClick={() => arrowUp(g.collection.id, ai, false)} style={arrowMini}>&#9650;</button>
                       <button disabled={busy} onClick={() => arrowDown(g.collection.id, ai, false)} style={arrowMini}>&#9660;</button>
                     </td>
+                    <td>{a.artwork_images?.[0]?.url ? <img src={a.artwork_images[0].url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} /> : '—'}</td>
                     <td>{a.title}</td>
                     <td style={{ fontSize: 12, color: 'var(--slate-gray)' }}>{g.collection.title}</td>
                     <td>{a.year}</td>
                     <td>{a.status}</td>
                     <td>EGP {a.price?.toLocaleString()}</td>
-                    <td>{a.is_featured ? 'Yes' : ''}</td>
-                    <td>{a.is_published ? 'Yes' : ''}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <label style={{ marginRight: 10 }}><input type="checkbox" checked={!!a.is_featured} disabled={busy} onChange={() => toggleField(a.id, 'is_featured')} /><span className="ml">Featured</span></label>
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <label style={{ marginRight: 10 }}><input type="checkbox" checked={!!a.is_on_sale} disabled={busy} onChange={() => toggleField(a.id, 'is_on_sale')} /><span className="ml">On Sale</span></label>
+                    </td>
+                    
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <button className="btn btn-secondary" style={{ fontSize: 12, padding: '4px 12px', marginRight: 6 }} onClick={() => setEdit(a)}>Edit</button>
                       <button className="btn btn-secondary" style={{ fontSize: 12, padding: '4px 12px', background: 'var(--caput-mortuum)', color: '#fff' }} onClick={() => handleDelete(a.id)} disabled={busy}>Delete</button>
@@ -299,7 +396,7 @@ function ArtworksManager({ setError, setSuccess }) {
             {uncollected.length > 0 && (
               <Fragment>
                 <tr className="admin-group-header">
-                  <td colSpan={9} style={{ padding: '8px 12px', fontWeight: 700, fontSize: 13, color: 'var(--slate-gray)', background: '#f5f0e8', fontStyle: 'italic' }}>No Collection</td>
+                  <td colSpan={10} style={{ padding: '8px 12px', fontWeight: 700, fontSize: 13, color: 'var(--slate-gray)', background: '#f5f0e8', fontStyle: 'italic' }}>No Collection</td>
                 </tr>
                 {uncollected.map((a, ai) => (
                   <tr key={a.id} draggable={!busy}
@@ -313,13 +410,19 @@ function ArtworksManager({ setError, setSuccess }) {
                       <button disabled={busy} onClick={() => arrowUp('unc', ai, true)} style={arrowMini}>&#9650;</button>
                       <button disabled={busy} onClick={() => arrowDown('unc', ai, true)} style={arrowMini}>&#9660;</button>
                     </td>
+                    <td>{a.artwork_images?.[0]?.url ? <img src={a.artwork_images[0].url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} /> : '—'}</td>
                     <td>{a.title}</td>
                     <td style={{ fontSize: 12, color: 'var(--slate-gray)' }}>—</td>
                     <td>{a.year}</td>
                     <td>{a.status}</td>
                     <td>EGP {a.price?.toLocaleString()}</td>
-                    <td>{a.is_featured ? 'Yes' : ''}</td>
-                    <td>{a.is_published ? 'Yes' : ''}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <label style={{ marginRight: 10 }}><input type="checkbox" checked={!!a.is_featured} disabled={busy} onChange={() => toggleField(a.id, 'is_featured')} /><span className="ml">Featured</span></label>
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <label style={{ marginRight: 10 }}><input type="checkbox" checked={!!a.is_on_sale} disabled={busy} onChange={() => toggleField(a.id, 'is_on_sale')} /><span className="ml">On Sale</span></label>
+                    </td>
+                    
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <button className="btn btn-secondary" style={{ fontSize: 12, padding: '4px 12px', marginRight: 6 }} onClick={() => setEdit(a)}>Edit</button>
                       <button className="btn btn-secondary" style={{ fontSize: 12, padding: '4px 12px', background: 'var(--caput-mortuum)', color: '#fff' }} onClick={() => handleDelete(a.id)} disabled={busy}>Delete</button>
@@ -348,11 +451,11 @@ function ArtworkForm({ item, collections, onSave, onCancel, busy }) {
   const [form, setForm] = useState({
     id: item.id || null, title: item.title || '', collection_id: item.collection_id || '',
     year: item.year || '', medium: item.medium || '',
-    width_cm: item.width_cm || '', height_cm: item.height_cm || '', depth_cm: item.depth_cm || '',
+    width_cm: item.width_cm || '', height_cm: item.height_cm || '', depth_cm: item.depth_cm || '', weight_kg: item.weight_kg || '',
     description: item.description || '', price: item.price || '',
-    status: item.status || 'available', is_featured: item.is_featured || false,
+    status: item.status || 'available', is_featured: item.is_featured || false, is_on_sale: item.is_on_sale || false,
     is_published: item.is_published !== undefined ? item.is_published : true,
-    sort_order: item.sort_order ?? (item.id ? item.sort_order : 0), stock: item.stock ?? '', files: null,
+    sort_order: item.sort_order ?? (item.id ? item.sort_order : 0), files: null,
   })
   const [existingImages, setExistingImages] = useState(item.artwork_images || [])
   const [imageBusy, setImageBusy] = useState(false)
@@ -418,8 +521,11 @@ function ArtworkForm({ item, collections, onSave, onCancel, busy }) {
         </div>
         <div className="admin-field">
           <label>Depth (cm)</label>
-          <input placeholder="0" type="number" value={form.depth_cm} onChange={setNum('depth_cm')} />
-          {form.depth_cm && <span className="inch-hint">≈ {cmToIn(form.depth_cm)} in</span>}
+          <input placeholder="Depth in cm" type="number" value={form.depth_cm} onChange={setNum('depth_cm')} />
+        </div>
+        <div className="admin-field">
+          <label>Weight (kg)</label>
+          <input placeholder="e.g., 2.5" type="number" value={form.weight_kg} onChange={setNum('weight_kg')} />
         </div>
         <div className="admin-field">
           <label>Price</label>
@@ -431,12 +537,9 @@ function ArtworkForm({ item, collections, onSave, onCancel, busy }) {
             <option value="available">Available</option><option value="reserved">Reserved</option><option value="sold">Sold</option><option value="not_for_sale">Not for Sale</option>
           </select>
         </div>
-        <div className="admin-field">
-          <label>Stock</label>
-          <input placeholder="Leave empty = single piece" type="number" value={form.stock} onChange={setNum('stock')} />
-        </div>
         <div className="admin-checkboxes">
           <label><input type="checkbox" checked={form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} /> Featured</label>
+          <label><input type="checkbox" checked={form.is_on_sale} onChange={(e) => setForm({ ...form, is_on_sale: e.target.checked })} /> Mark Painting as On Sale</label>
           <label><input type="checkbox" checked={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} /> Published</label>
         </div>
         <div className="admin-field full">
@@ -486,9 +589,47 @@ function CollectionsManager({ setError, setSuccess }) {
   const load = async () => {
     try {
       const supabase = await getAdminClient()
-      const { data, error } = await supabase.from('collections').select('*, artworks(*)').order('sort_order', { ascending: true })
-      if (error) throw error
-      setItems(data || [])
+      const [collsResp, onSaleCountResp] = await Promise.all([
+        supabase.from('collections').select('*, artworks(*)').order('sort_order', { ascending: true }),
+        supabase.from('artworks').select('id', { count: 'exact', head: true }).eq('is_on_sale', true).is('deleted_at', null),
+      ])
+      if (collsResp.error) throw collsResp.error
+
+      const allColls = collsResp.data || []
+      const onSaleDb = allColls.find((c) => c.id === ON_SALE_COLLECTION_ID)
+      const dbColls = allColls.filter((c) => c.id !== ON_SALE_COLLECTION_ID)
+
+      // If the On Sale DB row is missing, re-create it
+      if (!onSaleDb) {
+        const { data: profile } = await supabase.from('artist_profile').select('id').maybeSingle()
+        await supabase.from('collections').insert({
+          id: ON_SALE_COLLECTION_ID,
+          artist_id: profile?.id || '00000000-0000-0000-0000-000000000000',
+          title: 'On Sale',
+          description: 'Artworks currently on sale',
+          sort_order: -1,
+          is_published: true,
+        })
+        return load()
+      }
+
+      // Build the On Sale entry using DB data but with dynamic artwork count
+      const onSaleEntry = {
+        ...onSaleDb,
+        artworks: [],
+        _onSaleCount: onSaleCountResp.count || 0,
+      }
+
+      // Insert at correct position based on sort_order
+      dbColls.sort((a, b) => a.sort_order - b.sort_order)
+      const insertIdx = dbColls.findIndex((c) => c.sort_order > onSaleEntry.sort_order)
+      if (insertIdx === -1) {
+        setItems([...dbColls, onSaleEntry])
+      } else {
+        const sorted = [...dbColls]
+        sorted.splice(insertIdx, 0, onSaleEntry)
+        setItems(sorted)
+      }
       setDirty(false)
     } catch (e) { setError(e.message) }
   }
@@ -562,7 +703,9 @@ function CollectionsManager({ setError, setSuccess }) {
         const { error } = await supabase.from('collections').update(payload).eq('id', form.id)
         if (error) throw error
       } else {
-        const { error } = await supabase.from('collections').insert({ title: form.title, description: form.description, cover_image: coverUrl, sort_order: form.sort_order || 0, is_published: form.is_published !== undefined ? form.is_published : true })
+        const { data: profile } = await supabase.from('artist_profile').select('id').maybeSingle()
+        if (!profile) throw new Error('No artist profile found')
+        const { error } = await supabase.from('collections').insert({ artist_id: profile.id, title: form.title, description: form.description, cover_image: coverUrl, sort_order: form.sort_order || 0, is_published: form.is_published !== undefined ? form.is_published : true })
         if (error) throw error
       }
 
@@ -595,7 +738,9 @@ function CollectionsManager({ setError, setSuccess }) {
         )}
       </div>
       {edit && <CollectionForm item={edit} onSave={handleSave} onCancel={() => setEdit(null)} busy={busy} />}
-      {items.map((c, i) => (
+      {items.map((c, i) => {
+        const isOnSale = c.id === ON_SALE_COLLECTION_ID
+        return (
         <div key={c.id} className="admin-list-item" draggable={!busy}
           onDragStart={(e) => handleDragStart(e, i)}
           onDragOver={handleDragOver}
@@ -603,14 +748,14 @@ function CollectionsManager({ setError, setSuccess }) {
           style={{ cursor: 'grab' }}
         >
           <div className="admin-list-item-info" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ cursor: 'grab', fontSize: 16, color: 'var(--slate-gray)' }}>&#x22EE;</span>
+            <span style={{ fontSize: 16, color: isOnSale ? '#dc2626' : 'var(--slate-gray)' }}>{'\u22EE'}</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <button disabled={busy} onClick={() => arrowUp(i)} style={arrowMini}>&#9650;</button>
               <button disabled={busy} onClick={() => arrowDown(i)} style={arrowMini}>&#9660;</button>
             </div>
             <div>
-              <strong>{c.title}</strong>
-              <span style={{ fontSize: 12, color: 'var(--slate-gray)', marginLeft: 6 }}>({(c.artworks || []).length} artworks)</span>
+              <strong style={{ color: isOnSale ? '#dc2626' : 'inherit' }}>{c.title}</strong>
+              <span style={{ fontSize: 12, color: 'var(--slate-gray)', marginLeft: 6 }}>({isOnSale ? (c._onSaleCount || 0) : (c.artworks || []).length} artworks)</span>
               {c.description && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{c.description.slice(0, 100)}</p>}
             </div>
           </div>
@@ -619,7 +764,8 @@ function CollectionsManager({ setError, setSuccess }) {
             <button className="btn btn-secondary" style={{ fontSize: 12, padding: '2px 10px', background: 'var(--caput-mortuum)', color: '#fff' }} onClick={() => handleDelete(c.id)}>Del</button>
           </div>
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -657,7 +803,7 @@ function CollectionForm({ item, onSave, onCancel, busy }) {
         </div>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-        <button className="btn btn-primary" onClick={handleSave} disabled={busy || uploading}>{uploading ? 'Uploading...' : busy ? 'Saving...' : 'Save'}</button>
+        <button className="btn btn-primary" onClick={() => onSave(form)} disabled={busy}>{busy ? 'Saving...' : 'Save'}</button>
         <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
       </div>
     </div>
@@ -666,7 +812,7 @@ function CollectionForm({ item, onSave, onCancel, busy }) {
 
 /* ─── Profile ─── */
 function ProfileManager({ setError, setSuccess }) {
-  const [form, setForm] = useState({ name: '', artist_statement: '', research_academic: '', contact_email: '', contact_phone: '', instagram_url: '', tiktok_url: '' })
+  const [form, setForm] = useState({ name: '', artist_statement: '', biography: '', research_academic: '', contact_email: '', contact_phone: '', instagram_url: '', tiktok_url: '' })
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -710,6 +856,10 @@ function ProfileManager({ setError, setSuccess }) {
           <textarea placeholder="Write your artist statement..." value={form.artist_statement} onChange={(e) => setForm({ ...form, artist_statement: e.target.value })} style={{ minHeight: 120 }} />
         </div>
         <div className="admin-field full">
+          <label>Biography</label>
+          <textarea placeholder="Write your biography..." value={form.biography} onChange={(e) => setForm({ ...form, biography: e.target.value })} style={{ minHeight: 120 }} />
+        </div>
+        <div className="admin-field full">
           <label>Research & Academic</label>
           <textarea placeholder="Academic background, research interests..." value={form.research_academic} onChange={(e) => setForm({ ...form, research_academic: e.target.value })} style={{ minHeight: 100 }} />
         </div>
@@ -735,8 +885,18 @@ function ProfileManager({ setError, setSuccess }) {
   )
 }
 
-/* ─── Credentials ─── */
-function CredentialsManager({ setError, setSuccess }) {
+/* ─── Exhibitions ─── */
+function ExhibitionsManager({ setError, setSuccess }) {
+  return <CategoryManager category="exhibition" label="Exhibition" setError={setError} setSuccess={setSuccess} />
+}
+
+/* ─── Events ─── */
+function EventsManager({ setError, setSuccess }) {
+  return <CategoryManager category="event" label="Event" setError={setError} setSuccess={setSuccess} />
+}
+
+/* ─── Reusable category manager (exhibitions / events) ─── */
+function CategoryManager({ category, label, setError, setSuccess }) {
   const [items, setItems] = useState([])
   const [edit, setEdit] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -746,7 +906,7 @@ function CredentialsManager({ setError, setSuccess }) {
   const load = async () => {
     try {
       const supabase = await getAdminClient()
-      const { data, error } = await supabase.from('credentials').select('*').order('sort_order', { ascending: true })
+      const { data, error } = await supabase.from('exhibitions').select('*').eq('category', category).order('sort_order', { ascending: true })
       if (error) throw error
       setItems(data || [])
       setDirty(false)
@@ -789,7 +949,7 @@ function CredentialsManager({ setError, setSuccess }) {
     setBusy(true)
     try {
       const supabase = await getAdminClient()
-      await Promise.all(items.map((item, i) => supabase.from('credentials').update({ sort_order: i }).eq('id', item.id)))
+      await Promise.all(items.map((item, i) => supabase.from('exhibitions').update({ sort_order: i }).eq('id', item.id)))
       setSuccess('Order saved!')
       setDirty(false)
     } catch (e) { setError(e.message) }
@@ -800,107 +960,9 @@ function CredentialsManager({ setError, setSuccess }) {
     setBusy(true); setError(''); setSuccess('')
     try {
       const supabase = await getAdminClient()
-      if (form.id) {
-        const { error } = await supabase.from('credentials').update(form).eq('id', form.id)
-        if (error) throw error
-      } else {
-        const { error } = await supabase.from('credentials').insert(form)
-        if (error) throw error
-      }
-      setSuccess('Saved'); setEdit(null); load()
-    } catch (e) { setError(e.message) }
-    setBusy(false)
-  }
-
-  const handleDelete = async (id) => {
-    if (!confirm('Delete?')) return
-    try {
-      const supabase = await getAdminClient()
-      const { error } = await supabase.from('credentials').delete().eq('id', id)
-      if (error) throw error
-      setSuccess('Deleted'); load()
-    } catch (e) { setError(e.message) }
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <button className="btn btn-primary" onClick={() => setEdit({ type: 'education' })}>+ New Credential</button>
-        {dirty && (
-          <>
-            <button className="btn btn-primary" onClick={saveOrder} disabled={busy} style={{ background: 'var(--coffee)', color: '#fff' }}>
-              {busy ? 'Saving...' : 'Save Order'}
-            </button>
-            <span style={{ fontSize: 12, color: 'var(--slate-gray)' }}>Unsaved changes</span>
-          </>
-        )}
-      </div>
-      {edit && <InlineForm fields={['title', 'institution', 'type', 'start_year', 'end_year', 'description']} item={edit} onSave={handleSave} onCancel={() => setEdit(null)} busy={busy} />}
-      {items.map((c, i) => (
-        <div key={c.id} className="admin-list-item" draggable={!busy}
-          onDragStart={(e) => handleDragStart(e, i)}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, i)}
-          style={{ cursor: 'grab' }}
-        >
-          <div className="admin-list-item-info" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ cursor: 'grab', fontSize: 16, color: 'var(--slate-gray)' }}>&#x22EE;</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <button disabled={busy} onClick={() => arrowUp(i)} style={arrowMini}>&#9650;</button>
-              <button disabled={busy} onClick={() => arrowDown(i)} style={arrowMini}>&#9660;</button>
-            </div>
-            <div>
-              <strong>{c.title}</strong>{c.institution ? ` — ${c.institution}` : ''} <span style={{ fontSize: 12, color: 'var(--slate-gray)' }}>({c.type})</span>
-            </div>
-          </div>
-          <div className="admin-list-item-actions">
-            <button className="btn btn-secondary" style={{ fontSize: 12, padding: '2px 10px' }} onClick={() => setEdit(c)}>Edit</button>
-            <button className="btn btn-secondary" style={{ fontSize: 12, padding: '2px 10px', background: 'var(--caput-mortuum)', color: '#fff' }} onClick={() => handleDelete(c.id)}>Del</button>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/* ─── Exhibitions ─── */
-function ExhibitionsManager({ setError, setSuccess }) {
-  const [items, setItems] = useState([])
-  const [edit, setEdit] = useState(null)
-  const [busy, setBusy] = useState(false)
-
-  const load = async () => {
-    try {
-      const supabase = await getAdminClient()
-      const { data, error } = await supabase.from('exhibitions').select('*').order('start_date', { ascending: false })
-      if (error) throw error
-      setItems(data || [])
-    } catch (e) { setError(e.message) }
-  }
-  useEffect(() => { load() }, [])
-
-  const handleSave = async (form) => {
-    setBusy(true); setError(''); setSuccess('')
-    try {
-      const supabase = await getAdminClient()
-      const data = { ...form }
+      const data = { ...form, category }
       if (data.start_date) data.start_date = convertToDbDate(data.start_date)
       if (data.end_date) data.end_date = convertToDbDate(data.end_date)
-
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const start = data.start_date ? new Date(data.start_date + 'T00:00:00') : null
-      const end = data.end_date ? new Date(data.end_date + 'T00:00:00') : null
-      if (start && start > today) {
-        data.status = 'upcoming'
-      } else if (end && end < today) {
-        data.status = 'past'
-      } else if (start && end && start <= today && end >= today) {
-        data.status = 'current'
-      } else if (start && !end) {
-        data.status = start > today ? 'upcoming' : 'current'
-      }
-
       if (form.id) {
         const { error } = await supabase.from('exhibitions').update(data).eq('id', form.id)
         if (error) throw error
@@ -925,12 +987,36 @@ function ExhibitionsManager({ setError, setSuccess }) {
 
   return (
     <div>
-      <button className="btn btn-primary" onClick={() => setEdit({})} style={{ marginBottom: 16 }}>+ New Exhibition</button>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="btn btn-primary" onClick={() => setEdit({ category })}>+ New {label}</button>
+        {dirty && (
+          <>
+            <button className="btn btn-primary" onClick={saveOrder} disabled={busy} style={{ background: 'var(--coffee)', color: '#fff' }}>
+              {busy ? 'Saving...' : 'Save Order'}
+            </button>
+            <span style={{ fontSize: 12, color: 'var(--slate-gray)' }}>Unsaved changes</span>
+          </>
+        )}
+      </div>
       {edit && <InlineForm fields={['title', 'venue', 'location', 'start_date', 'end_date', 'description']} item={edit} onSave={handleSave} onCancel={() => setEdit(null)} busy={busy} />}
-      {items.map((ex) => (
-        <div key={ex.id} className="admin-list-item">
-          <div className="admin-list-item-info">
-            <strong>{ex.title}</strong> — {ex.venue} <span style={{ fontSize: 12, color: 'var(--slate-gray)' }}>{ex.status}{ex.start_date ? `, ${new Date(ex.start_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}{ex.end_date ? ` – ${new Date(ex.end_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</span>
+      {items.map((ex, i) => (
+        <div key={ex.id} className="admin-list-item" draggable={!busy}
+          onDragStart={(e) => handleDragStart(e, i)}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, i)}
+          style={{ cursor: 'grab' }}
+        >
+          <div className="admin-list-item-info" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ cursor: 'grab', fontSize: 16, color: 'var(--slate-gray)' }}>&#x22EE;</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <button disabled={busy} onClick={() => arrowUp(i)} style={arrowMini}>&#9650;</button>
+              <button disabled={busy} onClick={() => arrowDown(i)} style={arrowMini}>&#9660;</button>
+            </div>
+            <div>
+              <strong>{ex.title}</strong>{ex.venue ? ` — ${ex.venue}` : ''}
+              {ex.start_date ? <span style={{ fontSize: 12, color: 'var(--slate-gray)' }}> — {new Date(ex.start_date + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span> : ''}
+              {ex.end_date ? <span style={{ fontSize: 12, color: 'var(--slate-gray)' }}> – {new Date(ex.end_date + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span> : ''}
+            </div>
           </div>
           <div className="admin-list-item-actions">
             <button className="btn btn-secondary" style={{ fontSize: 12, padding: '2px 10px' }} onClick={() => setEdit(ex)}>Edit</button>
@@ -942,10 +1028,10 @@ function ExhibitionsManager({ setError, setSuccess }) {
   )
 }
 
-function convertToDbDate(dmy) {
-  if (!dmy || !dmy.includes('/')) return dmy
-  const [day, month, year] = dmy.split('/')
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+function convertToDbDate(my) {
+  if (!my || !my.includes('/')) return my
+  const [month, year] = my.split('/')
+  return `${year}-${month.padStart(2, '0')}-01`
 }
 
 /* ─── Reusable inline form ─── */
@@ -965,21 +1051,7 @@ function InlineForm({ fields, item, onSave, onCancel, busy }) {
           ) : f === 'start_date' || f === 'end_date' ? (
             <div key={f} className="admin-field">
               <label>{f.replace(/_/g, ' ')}</label>
-              <input type="text" placeholder="DD/MM/YYYY" value={form[f]} onChange={(e) => setForm({ ...form, [f]: e.target.value })} />
-            </div>
-          ) : f === 'type' ? (
-            <div key={f} className="admin-field">
-              <label>Type</label>
-              <select value={form[f]} onChange={(e) => setForm({ ...form, [f]: e.target.value })}>
-                {['education', 'certificate', 'work'].map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            </div>
-          ) : f === 'status' ? (
-            <div key={f} className="admin-field">
-              <label>Status</label>
-              <select value={form[f]} onChange={(e) => setForm({ ...form, [f]: e.target.value })}>
-                {['past', 'upcoming', 'current'].map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+              <input type="text" placeholder="MM/YYYY" value={form[f]} onChange={(e) => setForm({ ...form, [f]: e.target.value })} />
             </div>
           ) : (
             <div key={f} className="admin-field">

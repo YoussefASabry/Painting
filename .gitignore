@@ -22,6 +22,7 @@ build
 # next.js
 /.next/
 /out/
+.next.bak/
 
 # production
 /build
@@ -54,3 +55,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# open-mem: Auto-generated database and folder context files.
+.open-mem/memory.db*
+.open-mem/memory.db-shm
+.open-mem/memory.db-wal
+# Uncomment to exclude from version control (recommended for large projects):
+# **/AGENTS.md
+
+# Browser/Electron cache
+Default/
+EBWebView/
+
+# OpenCode logs
+soopencode/

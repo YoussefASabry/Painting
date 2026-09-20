@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
     <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--space-cadet)' }}>
       <div style={{ width: '100%', maxWidth: 400, padding: 40, background: '#fff', borderRadius: 12, boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}>
         <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 24, textAlign: 'center', marginBottom: 8, color: 'var(--space-cadet)' }}>Admin Login</h1>
-        <p style={{ fontSize: 13, textAlign: 'center', color: 'var(--slate-gray)', marginBottom: 28 }}>Sign in to manage your atelier</p>
+        <p style={{ fontSize: 13, textAlign: 'center', color: 'var(--slate-gray)', marginBottom: 28 }}>Sign in to manage your gallery</p>
 
         {error && <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, marginBottom: 20, fontSize: 13 }}>{error}</div>}
 
@@ -46,6 +46,9 @@ export default function AdminLoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <a href="/admin/reset-password" style={{ fontSize: 13, color: 'var(--coffee)', textDecoration: 'none' }}>Forgot password?</a>
+        </div>
       </div>
     </main>
   )
