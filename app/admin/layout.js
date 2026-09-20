@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { getBrowserSupabase } from '@/lib/supabase'
 
-const PUBLIC_PATHS = ['/admin/login', '/admin/reset-password']
+const PUBLIC_PATHS = ['/admin/login', '/admin/reset-password', '/admin/setup']
 
 export default function AdminLayout({ children }) {
   const [checked, setChecked] = useState(false)
