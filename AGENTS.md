@@ -4,16 +4,18 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| c394f74c-f722-462b-a558-2b593d213815 | 🔵 discovery | Route Rendering Strategy Identified | 2026-09-28 |
+| 750ef51f-950e-4fae-8bee-b924f788ba60 | 🔵 discovery | Image File Metadata Discovered | 2026-09-28 |
+| 28aa32dc-fa5e-4cd2-953b-6299005ff2bb | 🔵 discovery | Found favi1.png image file | 2026-09-28 |
+| fdb7d46e-18a0-4bc7-b724-02fc62eb0f31 | 🔵 discovery | Next.js production build process analyzed | 2026-09-20 |
 | c3045cbc-82ff-434a-91f1-093ba3dc6f3c | 🔄 refactor | Revert changes: Remove admin setup page and image | 2026-08-30 |
 | 04523b40-9acf-4ef9-9e16-92ea25098b70 | 🔴 bugfix | Fix 404 error in on-sale collection by adding slug | 2026-08-30 |
 | 395cd22a-8627-4a15-bf0f-68ab4da0411a | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
 | e0250d95-4459-45fb-ae94-4f87c9c6b939 | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
 | cde7bb30-500b-4055-94e5-d925557b0bf1 | 🔴 bugfix | Fix 404 in on-sale collection by adding slug | 2026-08-29 |
 | 3ed79069-d12c-4c2b-b358-330f2c46e124 | 🔵 discovery | GitHub credential helper configuration for Git | 2026-08-26 |
-| f0307ed0-0033-45f3-8eed-404010e03583 | 🔵 discovery | Identified .gitignore rules for common build artifacts | 2026-08-26 |
-| ca20edf8-071a-4e97-87ad-eef8a04c9268 | ✅ change | Git repository status and recent commits | 2026-08-26 |
 
-**Key concepts:** revert, refactor, bugfix, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion, git-repository, file-modification
+**Key concepts:** how-it-works, prerendering, server-rendering, file metadata, image format, image dimensions, file-discovery, image-file, next.js, production build
 
 ### .agents/skills/cavecrew/
 | ID | Type | Title | Date |
@@ -67,11 +69,12 @@
 ### app/
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| 75880354-65c7-4720-8d16-0bd405304705 | 🔵 discovery | FFmpeg processing of PNG image detected | 2026-09-28 |
 | 04523b40-9acf-4ef9-9e16-92ea25098b70 | 🔴 bugfix | Fix 404 error in on-sale collection by adding slug | 2026-08-30 |
 | 1acaae74-d8b6-4c58-9f73-8d7a27bb7afd | 🔄 refactor | Improve collection handling and hero section rendering | 2026-08-29 |
 | 8a7fb860-5d1d-47d4-be4a-a4e2eb076e85 | 🔄 refactor | CSS Styling for Product Listings | 2026-08-26 |
 
-**Key concepts:** bugfix, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion, dynamic content, collection filtering, data binding, css-styling
+**Key concepts:** ffmpeg, image processing, video generation, png, bugfix, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion
 
 ### app/admin/
 | ID | Type | Title | Date |
@@ -102,12 +105,13 @@
 ### app/admin/setup/
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| 49dc2d81-f2a8-414f-b41e-83af3aa97368 | 🔴 bugfix | Fix 404 error on /admin/setup invite links | 2026-09-20 |
 | c3045cbc-82ff-434a-91f1-093ba3dc6f3c | 🔄 refactor | Revert changes: Remove admin setup page and image | 2026-08-30 |
 | 04523b40-9acf-4ef9-9e16-92ea25098b70 | 🔴 bugfix | Fix 404 error in on-sale collection by adding slug | 2026-08-30 |
 | 395cd22a-8627-4a15-bf0f-68ab4da0411a | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
 | d55c7d55-7aa0-4f47-ae4f-dd3a7396fbac | 🔵 discovery | Identified admin setup page in backup directory | 2026-08-29 |
 
-**Key concepts:** revert, refactor, bugfix, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion, git-repository, file-modification
+**Key concepts:** bugfix, 404 error, restore functionality, revert, refactor, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion
 
 ### app/api/admin-signup/
 | ID | Type | Title | Date |
