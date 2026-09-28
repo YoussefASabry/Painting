@@ -4,6 +4,7 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| 6661390a-b910-462e-ae1b-1dd23b491c4d | 🔄 refactor | Adjust favicon scaling to prevent cropping | 2026-09-28 |
 | 93739b2e-1d21-40bf-9352-8e95c700b29d | 🟣 feature | Add favicon to project | 2026-09-28 |
 | c394f74c-f722-462b-a558-2b593d213815 | 🔵 discovery | Route Rendering Strategy Identified | 2026-09-28 |
 | 750ef51f-950e-4fae-8bee-b924f788ba60 | 🔵 discovery | Image File Metadata Discovered | 2026-09-28 |
@@ -13,9 +14,8 @@
 | 04523b40-9acf-4ef9-9e16-92ea25098b70 | 🔴 bugfix | Fix 404 error in on-sale collection by adding slug | 2026-08-30 |
 | 395cd22a-8627-4a15-bf0f-68ab4da0411a | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
 | e0250d95-4459-45fb-ae94-4f87c9c6b939 | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
-| cde7bb30-500b-4055-94e5-d925557b0bf1 | 🔴 bugfix | Fix 404 in on-sale collection by adding slug | 2026-08-29 |
 
-**Key concepts:** feature, commit, version-control, favicon, how-it-works, prerendering, server-rendering, file metadata, image format, image dimensions
+**Key concepts:** what-changed, refactor, favicon, image-scaling, feature, commit, version-control, how-it-works, prerendering, server-rendering
 
 ### .agents/skills/cavecrew/
 | ID | Type | Title | Date |
@@ -69,13 +69,15 @@
 ### app/
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| a17d474b-991d-439b-9ead-24f255f6df98 | ✅ change | Image Resized to 512x512 | 2026-09-28 |
+| 0366ca25-3451-4b42-99ce-9b48ffe46917 | 🔵 discovery | Image Metadata Extraction | 2026-09-28 |
 | 93739b2e-1d21-40bf-9352-8e95c700b29d | 🟣 feature | Add favicon to project | 2026-09-28 |
 | 75880354-65c7-4720-8d16-0bd405304705 | 🔵 discovery | FFmpeg processing of PNG image detected | 2026-09-28 |
 | 04523b40-9acf-4ef9-9e16-92ea25098b70 | 🔴 bugfix | Fix 404 error in on-sale collection by adding slug | 2026-08-30 |
 | 1acaae74-d8b6-4c58-9f73-8d7a27bb7afd | 🔄 refactor | Improve collection handling and hero section rendering | 2026-08-29 |
 | 8a7fb860-5d1d-47d4-be4a-a4e2eb076e85 | 🔄 refactor | CSS Styling for Product Listings | 2026-08-26 |
 
-**Key concepts:** feature, commit, version-control, favicon, ffmpeg, image processing, video generation, png, bugfix, 404-error
+**Key concepts:** image-resizing, image-processing, metadata-extraction, feature, commit, version-control, favicon, ffmpeg, image processing, video generation
 
 ### app/admin/
 | ID | Type | Title | Date |
