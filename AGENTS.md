@@ -4,6 +4,7 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| c3045cbc-82ff-434a-91f1-093ba3dc6f3c | 🔄 refactor | Revert changes: Remove admin setup page and image | 2026-08-30 |
 | 04523b40-9acf-4ef9-9e16-92ea25098b70 | 🔴 bugfix | Fix 404 error in on-sale collection by adding slug | 2026-08-30 |
 | 395cd22a-8627-4a15-bf0f-68ab4da0411a | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
 | e0250d95-4459-45fb-ae94-4f87c9c6b939 | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
@@ -12,7 +13,7 @@
 | f0307ed0-0033-45f3-8eed-404010e03583 | 🔵 discovery | Identified .gitignore rules for common build artifacts | 2026-08-26 |
 | ca20edf8-071a-4e97-87ad-eef8a04c9268 | ✅ change | Git repository status and recent commits | 2026-08-26 |
 
-**Key concepts:** bugfix, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion, git-repository, file-modification, git-staging-area, git-status
+**Key concepts:** revert, refactor, bugfix, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion, git-repository, file-modification
 
 ### .agents/skills/cavecrew/
 | ID | Type | Title | Date |
@@ -81,6 +82,40 @@
 | f517fe55-f859-46db-88e2-8c81737a11f3 | 🟣 feature | Implement Admin Authentication Redirect | 2026-08-26 |
 
 **Key concepts:** bugfix, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion, authentication-flow, client-side-routing, state-management, route-protection
+
+### app/admin/invite/
+| ID | Type | Title | Date |
+|----|------|-------|------|
+| e3d5f21f-22a2-4fe0-89fe-43a701a4250b | 🟣 feature | Admin invite generation and management | 2026-09-20 |
+| 75d0d479-b12f-4317-ae26-672cc3582dac | 🔄 refactor | Refactor admin invite handling in Supabase interactions | 2026-09-20 |
+| a62616e8-9509-4088-a875-943d5e72afb4 | 🔵 discovery | Locating Admin Invite Page JS File | 2026-09-20 |
+
+**Key concepts:** how-it-works, feature, admin-interface, token-generation, data-persistence, database-interaction, api-design, backend-logic, file-path, project-structure
+
+### app/admin/reset-password/
+| ID | Type | Title | Date |
+|----|------|-------|------|
+| 750a375a-d91b-478f-8bae-cb11c5cce42e | 🟣 feature | Implement Password Reset Functionality | 2026-09-20 |
+
+**Key concepts:** frontend-development, authentication, ui-state-management, supabase, client-side-rendering
+
+### app/admin/setup/
+| ID | Type | Title | Date |
+|----|------|-------|------|
+| c3045cbc-82ff-434a-91f1-093ba3dc6f3c | 🔄 refactor | Revert changes: Remove admin setup page and image | 2026-08-30 |
+| 04523b40-9acf-4ef9-9e16-92ea25098b70 | 🔴 bugfix | Fix 404 error in on-sale collection by adding slug | 2026-08-30 |
+| 395cd22a-8627-4a15-bf0f-68ab4da0411a | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
+| d55c7d55-7aa0-4f47-ae4f-dd3a7396fbac | 🔵 discovery | Identified admin setup page in backup directory | 2026-08-29 |
+
+**Key concepts:** revert, refactor, bugfix, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion, git-repository, file-modification
+
+### app/api/admin-signup/
+| ID | Type | Title | Date |
+|----|------|-------|------|
+| 784ab3e4-2a90-4773-ad86-8de9dae4e093 | 🟣 feature | Admin signup with invite token validation | 2026-09-20 |
+| 75d0d479-b12f-4317-ae26-672cc3582dac | 🔄 refactor | Refactor admin invite handling in Supabase interactions | 2026-09-20 |
+
+**Key concepts:** invite-validation, race-condition-handling, transactional-rollback, api-security, database-interaction, api-design, backend-logic
 
 ### Default/
 | ID | Type | Title | Date |
