@@ -4,6 +4,7 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| 93739b2e-1d21-40bf-9352-8e95c700b29d | 🟣 feature | Add favicon to project | 2026-09-28 |
 | c394f74c-f722-462b-a558-2b593d213815 | 🔵 discovery | Route Rendering Strategy Identified | 2026-09-28 |
 | 750ef51f-950e-4fae-8bee-b924f788ba60 | 🔵 discovery | Image File Metadata Discovered | 2026-09-28 |
 | 28aa32dc-fa5e-4cd2-953b-6299005ff2bb | 🔵 discovery | Found favi1.png image file | 2026-09-28 |
@@ -13,9 +14,8 @@
 | 395cd22a-8627-4a15-bf0f-68ab4da0411a | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
 | e0250d95-4459-45fb-ae94-4f87c9c6b939 | ✅ change | Uncommitted changes detected in Git repository | 2026-08-29 |
 | cde7bb30-500b-4055-94e5-d925557b0bf1 | 🔴 bugfix | Fix 404 in on-sale collection by adding slug | 2026-08-29 |
-| 3ed79069-d12c-4c2b-b358-330f2c46e124 | 🔵 discovery | GitHub credential helper configuration for Git | 2026-08-26 |
 
-**Key concepts:** how-it-works, prerendering, server-rendering, file metadata, image format, image dimensions, file-discovery, image-file, next.js, production build
+**Key concepts:** feature, commit, version-control, favicon, how-it-works, prerendering, server-rendering, file metadata, image format, image dimensions
 
 ### .agents/skills/cavecrew/
 | ID | Type | Title | Date |
@@ -69,12 +69,13 @@
 ### app/
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| 93739b2e-1d21-40bf-9352-8e95c700b29d | 🟣 feature | Add favicon to project | 2026-09-28 |
 | 75880354-65c7-4720-8d16-0bd405304705 | 🔵 discovery | FFmpeg processing of PNG image detected | 2026-09-28 |
 | 04523b40-9acf-4ef9-9e16-92ea25098b70 | 🔴 bugfix | Fix 404 error in on-sale collection by adding slug | 2026-08-30 |
 | 1acaae74-d8b6-4c58-9f73-8d7a27bb7afd | 🔄 refactor | Improve collection handling and hero section rendering | 2026-08-29 |
 | 8a7fb860-5d1d-47d4-be4a-a4e2eb076e85 | 🔄 refactor | CSS Styling for Product Listings | 2026-08-26 |
 
-**Key concepts:** ffmpeg, image processing, video generation, png, bugfix, 404-error, slug, on-sale-collection, uncommitted-changes, file-deletion
+**Key concepts:** feature, commit, version-control, favicon, ffmpeg, image processing, video generation, png, bugfix, 404-error
 
 ### app/admin/
 | ID | Type | Title | Date |
