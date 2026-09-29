@@ -4,6 +4,8 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| 785da445-41f3-4fbe-987b-fa19f9e8cea8 | 🔵 discovery | File exists without extension but is a JPEG | 2026-09-29 |
+| 646690b1-126b-4f1a-9f69-8c40165c7ce7 | ✅ change | Updated project assets and Git commit | 2026-09-29 |
 | b29f8cfa-c105-440d-aa4e-363ec2944fb9 | 🔵 discovery | Image File Metadata Discovered | 2026-09-29 |
 | d051d0ee-9c41-4869-8d68-59172c4afb8b | 🔵 discovery | Image file found in project backup | 2026-09-29 |
 | 15400264-5c07-488f-9c0a-9be09295999d | ✅ change | Added white squircle background to favicon | 2026-09-28 |
@@ -12,10 +14,8 @@
 | c394f74c-f722-462b-a558-2b593d213815 | 🔵 discovery | Route Rendering Strategy Identified | 2026-09-28 |
 | 750ef51f-950e-4fae-8bee-b924f788ba60 | 🔵 discovery | Image File Metadata Discovered | 2026-09-28 |
 | 28aa32dc-fa5e-4cd2-953b-6299005ff2bb | 🔵 discovery | Found favi1.png image file | 2026-09-28 |
-| fdb7d46e-18a0-4bc7-b724-02fc62eb0f31 | 🔵 discovery | Next.js production build process analyzed | 2026-09-20 |
-| c3045cbc-82ff-434a-91f1-093ba3dc6f3c | 🔄 refactor | Revert changes: Remove admin setup page and image | 2026-08-30 |
 
-**Key concepts:** image-metadata, file-inspection, file-discovery, project-backup, favicon, ui-styling, what-changed, refactor, image-scaling, feature
+**Key concepts:** file-extension, metadata, jpeg, asset-management, git-commit, continuous-integration, image-metadata, file-inspection, file-discovery, project-backup
 
 ### .agents/skills/cavecrew/
 | ID | Type | Title | Date |
@@ -69,6 +69,7 @@
 ### app/
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| 646690b1-126b-4f1a-9f69-8c40165c7ce7 | ✅ change | Updated project assets and Git commit | 2026-09-29 |
 | bb0b9bd1-b97f-4b5a-b97e-4a10d25efd6e | 🟣 feature | Enlarge favicon and adjust cropping | 2026-09-28 |
 | 62495c52-b746-4c47-aac6-df3e5554461b | 🔵 discovery | PNG Image Alpha Channel Discrepancy | 2026-09-28 |
 | a17d474b-991d-439b-9ead-24f255f6df98 | ✅ change | Image Resized to 512x512 | 2026-09-28 |
@@ -79,7 +80,7 @@
 | 1acaae74-d8b6-4c58-9f73-8d7a27bb7afd | 🔄 refactor | Improve collection handling and hero section rendering | 2026-08-29 |
 | 8a7fb860-5d1d-47d4-be4a-a4e2eb076e85 | 🔄 refactor | CSS Styling for Product Listings | 2026-08-26 |
 
-**Key concepts:** image processing, favicon, cropping, git commit, alpha-channel, transparency, image-analysis, image-resizing, image-processing, metadata-extraction
+**Key concepts:** asset-management, git-commit, continuous-integration, image processing, favicon, cropping, git commit, alpha-channel, transparency, image-analysis
 
 ### app/admin/
 | ID | Type | Title | Date |
