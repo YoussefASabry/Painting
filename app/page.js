@@ -1,23 +1,39 @@
 import Link from 'next/link'
-import { getArtistProfile, getCredentials, getPastExhibitions, getUpcomingExhibitions, getArtworks, getFeaturedArtworks, getCollections } from '@/lib/db'
+import { getArtistProfile, getExhibitions, getEvents, getArtworks, getFeaturedArtworks, getCollections, ON_SALE_COLLECTION_ID } from '@/lib/db'
 import ContactCard from '@/components/ContactCard'
 import CollectionShowcase from '@/components/CollectionShowcase'
 
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const [profile, credentials, pastExhibitions, upcomingExhibitions, artworks, featuredList, collections] = await Promise.all([
-    getArtistProfile(), getCredentials(), getPastExhibitions(), getUpcomingExhibitions(), getArtworks(), getFeaturedArtworks(), getCollections(),
+  const [profile, exhibitions, events, artworks, featuredList, collections] = await Promise.all([
+    getArtistProfile(), getExhibitions(), getEvents(), getArtworks(), getFeaturedArtworks(), getCollections(),
   ])
 
   const featured = featuredList.length > 0 ? featuredList[0] : artworks[0]
+  const onSaleArtworks = artworks.filter((a) => a.is_on_sale && a.status !== 'sold')
+  const onSaleDb = collections.find((c) => c.id === ON_SALE_COLLECTION_ID)
+  const regularColls = collections.filter((c) => c.id !== ON_SALE_COLLECTION_ID)
+
+  // Build the On Sale collection from DB metadata + dynamic artworks
+  const onSaleEntry = onSaleArtworks.length > 0 ? {
+    id: 'on-sale',
+    slug: 'on-sale',
+    title: onSaleDb?.title || 'On Sale',
+    description: onSaleDb?.description || 'Artworks currently on sale',
+    cover_image: onSaleDb?.cover_image || null,
+    sort_order: onSaleDb?.sort_order ?? -1,
+    artworks: onSaleArtworks,
+  } : null
+
+  const allCollections = [onSaleEntry, ...regularColls].filter(Boolean).sort((a, b) => a.sort_order - b.sort_order)
 
   return (
     <>
       {/* HERO */}
       <section id="home" className="hero">
         <div className="hero-content">
-          <h1>Atelier</h1>
+          <h1>{profile?.name || 'Hala Salah'}</h1>
           <p>Portfolio &amp; Painting Store</p>
           <div className="hero-buttons">
             <a href="#gallery" className="btn-square" title="Browse Gallery">
@@ -37,33 +53,17 @@ export default async function HomePage() {
       <section id="biography" className="section">
         <div className="container">
           <div className="section-header"><h2>Biography</h2></div>
-          {credentials.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--slate-gray)', padding: 40 }}>Biography details coming soon.</p>
-          ) : (
-            <div className="grid grid-2" style={{ gap: 30, maxWidth: 1000, margin: '0 auto' }}>
-              {['education', 'certificate', 'work'].map((type) => {
-                const items = credentials.filter((c) => c.type === type)
-                if (items.length === 0) return null
-                const label = type === 'education' ? 'Education & Training' : type === 'certificate' ? 'Certificates' : 'Professional Experience'
-                return (
-                  <div className="info-card" key={type}>
-                    <h3 style={{ marginBottom: 16, fontSize: 14, color: 'var(--coffee)' }}>{label}</h3>
-                    <ul className="info-list">
-                      {items.map((c) => (
-                        <li key={c.id}>
-                          <strong style={{ color: 'var(--space-cadet)' }}>{c.title}</strong>
-                          {c.institution ? ` — ${c.institution}` : ''}
-                          {c.start_year ? <span style={{ color: 'var(--coffee)', fontWeight: 600 }}> ({c.start_year}{c.end_year ? `–${c.end_year}` : ''})</span> : ''}
-                          {c.description ? <br /> : ''}
-                          {c.description ? <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{c.description}</span> : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          <div className="info-card free-text" style={{ maxWidth: 900, margin: '0 auto' }}>
+            {profile?.biography ? (
+              profile.biography.split('\n').filter(Boolean).map((p, i) => (
+                <p key={i} style={{ marginBottom: 20 }} dir="auto">{p}</p>
+              ))
+            ) : (
+              <p style={{ fontSize: 16, lineHeight: 1.9, color: 'var(--text-muted)', textAlign: 'center' }}>
+                Biography coming soon.
+              </p>
+            )}
+          </div>
         </div>
       </section>
 
@@ -71,10 +71,10 @@ export default async function HomePage() {
       <section id="statement" className="section-dark">
         <div className="container">
           <div className="section-header"><h2>Artist Statement</h2></div>
-          <div className="info-card-dark" style={{ maxWidth: 900, margin: '0 auto' }}>
+          <div className="info-card-dark free-text" style={{ maxWidth: 900, margin: '0 auto' }}>
             {profile?.artist_statement ? (
               profile.artist_statement.split('\n').filter(Boolean).map((p, i) => (
-                <p key={i} style={{ fontSize: 16, lineHeight: 1.9, marginBottom: 20 }}>{p}</p>
+                <p key={i} style={{ marginBottom: 20 }} dir="auto">{p}</p>
               ))
             ) : (
               <p style={{ fontSize: 16, lineHeight: 1.9, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
@@ -97,8 +97,8 @@ export default async function HomePage() {
             <h2>Collections</h2>
             <p style={{ fontSize: 14, color: 'var(--slate-gray)' }}>Click a collection to explore its artworks</p>
           </div>
-          {collections.length > 0 ? (
-            <CollectionShowcase collections={collections} />
+          {(allCollections.length > 0) ? (
+            <CollectionShowcase collections={allCollections} />
           ) : (
             <p style={{ textAlign: 'center', color: 'var(--slate-gray)', padding: 60 }}>No collections yet — check back soon.</p>
           )}
@@ -118,15 +118,14 @@ export default async function HomePage() {
                   : <div style={{ width: '100%', height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f0e8', color: '#999' }}>No Image</div>}
               </div>
               <div>
-                <h3 style={{ fontSize: 13, letterSpacing: 2, marginBottom: 8, color: 'var(--tan)' }}>Featured Work</h3>
                 <h2 style={{ fontSize: 28, marginBottom: 8, color: '#fff' }}>{featured.title}</h2>
                 <p style={{ fontSize: 14, color: 'var(--tan)', fontStyle: 'italic', marginBottom: 16 }}>{featured.medium} — {featured.size} — {featured.year}</p>
                 {featured.collection_name && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Collection: {featured.collection_name}</p>}
                 <p style={{ fontSize: 15, lineHeight: 1.8, marginBottom: 20, color: 'rgba(255,255,255,0.85)' }}>{featured.description}</p>
-                <div style={{ fontSize: 24, fontWeight: 900, color: featured.sold ? 'var(--caput-mortuum)' : 'var(--tan)', marginBottom: 16 }}>
-                  {featured.sold ? 'SOLD' : `EGP ${(featured.price || 0).toLocaleString()}`}
+                <div style={{ fontSize: 24, fontWeight: 900, color: featured.status === 'sold' ? 'var(--caput-mortuum)' : 'var(--tan)', marginBottom: 16 }}>
+                  {featured.status === 'sold' ? 'SOLD' : `EGP ${(featured.price || 0).toLocaleString()}`}
                 </div>
-                {!featured.sold && <Link href={`/painting/${featured.id}`} className="btn btn-primary">View Artwork</Link>}
+                {featured.status !== 'sold' && <Link href={`/painting/${featured.id}`} className="btn btn-primary">View Artwork</Link>}
               </div>
             </div>
           )}
@@ -141,7 +140,7 @@ export default async function HomePage() {
             <div className="info-card" style={{ maxWidth: 900, margin: '0 auto' }}>
               <ul className="research-list">
                 {profile.research_academic.split('\n').filter(Boolean).map((p, i) => (
-                  <li key={i}>{p}</li>
+                  <li key={i} dir="auto">{p}</li>
                 ))}
               </ul>
             </div>
@@ -151,21 +150,21 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* EXHIBITIONS (Past) */}
+      {/* EXHIBITIONS */}
       <section id="exhibitions" className="section-dark">
         <div className="container">
           <div className="section-header"><h2>Exhibitions</h2></div>
-          {pastExhibitions.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: 40 }}>No past exhibitions yet.</p>
+          {exhibitions.length === 0 ? (
+            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: 40 }}>No exhibitions yet.</p>
           ) : (
             <div className="grid grid-2" style={{ gap: 30, maxWidth: 1000, margin: '0 auto' }}>
-              {pastExhibitions.map((ex) => {
+              {exhibitions.map((ex) => {
                 const d = (s) => s ? new Date(s + 'T00:00:00') : null
-                const fmt = (dt) => dt ? dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''
+                const fmt = (dt) => dt ? dt.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : ''
                 const start = d(ex.start_date)
                 const end = d(ex.end_date)
                 const dateRange = start && end && start.toDateString() === end.toDateString() ? fmt(start)
-                  : start && end ? `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} — ${fmt(end)}`
+                  : start && end ? `${fmt(start)} — ${fmt(end)}`
                   : start ? fmt(start) : end ? `Until ${fmt(end)}` : ''
                 return (
                   <div className="info-card-dark" key={ex.id}>
@@ -183,27 +182,24 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* NEWS & EVENTS (Upcoming) */}
+      {/* NEWS & EVENTS */}
       <section id="news" className="section">
         <div className="container">
           <div className="section-header"><h2>News & Events</h2></div>
-          {upcomingExhibitions.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--slate-gray)', padding: 40 }}>No upcoming events at this time.</p>
+          {events.length === 0 ? (
+            <p style={{ textAlign: 'center', color: 'var(--slate-gray)', padding: 40 }}>No events at this time.</p>
           ) : (
             <div className="grid grid-2" style={{ gap: 30, maxWidth: 1000, margin: '0 auto' }}>
-              {upcomingExhibitions.map((ex) => {
+              {events.map((ex) => {
                 const d = (s) => s ? new Date(s + 'T00:00:00') : null
-                const fmt = (dt) => dt ? dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''
+                const fmt = (dt) => dt ? dt.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : ''
                 const start = d(ex.start_date)
                 const end = d(ex.end_date)
                 const dateRange = start && end && start.toDateString() === end.toDateString() ? fmt(start)
-                  : start && end ? `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} — ${fmt(end)}`
+                  : start && end ? `${fmt(start)} — ${fmt(end)}`
                   : start ? fmt(start) : end ? `Until ${fmt(end)}` : ''
-                const badgeColor = ex.status === 'upcoming' ? 'var(--tan)' : ex.status === 'current' ? 'var(--coffee)' : 'var(--space-cadet)'
-                const badgeText = ex.status === 'upcoming' ? 'Upcoming' : ex.status === 'current' ? 'Current' : 'Event'
                 return (
                   <div className="info-card" key={ex.id}>
-                    <span style={{ display: 'inline-block', background: badgeColor, color: badgeColor === 'var(--space-cadet)' ? 'var(--tan)' : badgeColor === 'var(--coffee)' ? '#fff' : 'var(--space-cadet)', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 4, marginBottom: 12 }}>{badgeText}</span>
                     <h3 style={{ fontSize: 16, marginBottom: 8 }}>{ex.title}</h3>
                     {dateRange && <p style={{ fontSize: 13, marginBottom: 6, color: 'var(--slate-gray)' }}>{dateRange}</p>}
                     <p style={{ fontSize: 13, marginBottom: 8, color: 'var(--slate-gray)' }}>{[ex.venue, ex.location].filter(Boolean).join(', ')}</p>

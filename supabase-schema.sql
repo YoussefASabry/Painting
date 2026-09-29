@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS artist_profile (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL DEFAULT '',
   artist_statement TEXT DEFAULT '',
+  biography TEXT DEFAULT '',
   research_academic TEXT DEFAULT '',
   contact_email TEXT DEFAULT '',
   contact_phone TEXT DEFAULT '',
@@ -31,7 +32,7 @@ CREATE TABLE IF NOT EXISTS credentials (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. Exhibitions (includes both past and upcoming)
+-- 3. Exhibitions & Events
 CREATE TABLE IF NOT EXISTS exhibitions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   artist_id UUID NOT NULL REFERENCES artist_profile(id) ON DELETE CASCADE,
@@ -41,7 +42,8 @@ CREATE TABLE IF NOT EXISTS exhibitions (
   start_date DATE,
   end_date DATE,
   description TEXT DEFAULT '',
-  status TEXT NOT NULL DEFAULT 'past' CHECK (status IN ('past', 'current', 'upcoming')),
+  category TEXT NOT NULL DEFAULT 'exhibition' CHECK (category IN ('exhibition', 'event')),
+  sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -55,6 +57,7 @@ CREATE TABLE IF NOT EXISTS artworks (
   width_cm NUMERIC,
   height_cm NUMERIC,
   depth_cm NUMERIC,
+  weight_kg NUMERIC DEFAULT 2,
   description TEXT DEFAULT '',
   price NUMERIC DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'reserved', 'sold', 'not_for_sale')),
@@ -76,15 +79,23 @@ CREATE TABLE IF NOT EXISTS artwork_images (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 6. Orders (future use)
+-- 6. Orders (e-commerce)
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  artwork_id UUID REFERENCES artworks(id),
   customer_name TEXT NOT NULL,
   customer_email TEXT NOT NULL,
   customer_phone TEXT DEFAULT '',
-  message TEXT DEFAULT '',
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+  customer_governorate TEXT DEFAULT '',
+  customer_city TEXT DEFAULT '',
+  street_address TEXT DEFAULT '',
+  building_number TEXT DEFAULT '',
+  apartment_number TEXT DEFAULT '',
+  shipping_cost NUMERIC DEFAULT 0,
+  total_items_cost NUMERIC DEFAULT 0,
+  calculated_weight NUMERIC DEFAULT 0,
+  paymob_order_id TEXT DEFAULT '',
+  payment_method TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'still packaging', 'sent to shipping', 'completed', 'cancelled')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
